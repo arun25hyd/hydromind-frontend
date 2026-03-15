@@ -1036,52 +1036,128 @@ export default function App() {
 const CALCS = {
   flow: {
     label: "Flow Rate", icon: "💧",
-    fields: [{ key: "area", label: "Bore Area (cm²)" }, { key: "speed", label: "Piston Speed (m/s)" }],
-    calc: (f) => {
+    si:       [{ key: "area", label: "Bore Area (cm²)" }, { key: "speed", label: "Piston Speed (m/s)" }],
+    imperial: [{ key: "area", label: "Bore Area (in²)" }, { key: "speed", label: "Piston Speed (in/s)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const q = parseFloat(f.area) * parseFloat(f.speed) * 0.2597; // in³/s → GPM
+        return `Flow Rate: ${q.toFixed(3)} GPM  |  ${(q * 3.785).toFixed(2)} LPM`;
+      }
       const q = parseFloat(f.area) * parseFloat(f.speed) * 600;
-      return `Flow Rate: ${q.toFixed(2)} LPM`;
+      return `Flow Rate: ${q.toFixed(2)} LPM  |  ${(q * 0.2642).toFixed(3)} GPM`;
     }
   },
   pressure: {
     label: "Cylinder Force", icon: "⚡",
-    fields: [{ key: "pressure", label: "Pressure (bar)" }, { key: "bore", label: "Bore Dia (mm)" }],
-    calc: (f) => {
+    si:       [{ key: "pressure", label: "Pressure (bar)" }, { key: "bore", label: "Bore Dia (mm)" }],
+    imperial: [{ key: "pressure", label: "Pressure (PSI)" }, { key: "bore", label: "Bore Dia (inch)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const area = Math.PI * Math.pow(parseFloat(f.bore) / 2, 2);
+        const force = parseFloat(f.pressure) * area; // lbf
+        return `Force: ${force.toFixed(0)} lbf  |  ${(force * 0.004448).toFixed(2)} kN`;
+      }
       const area = Math.PI * Math.pow(parseFloat(f.bore) / 2, 2) / 100;
       const force = parseFloat(f.pressure) * area * 10;
-      return `Force: ${force.toFixed(2)} kN`;
+      return `Force: ${force.toFixed(2)} kN  |  ${(force * 224.8).toFixed(0)} lbf`;
     }
   },
   power: {
     label: "Pump Power", icon: "🔋",
-    fields: [{ key: "flow", label: "Flow (LPM)" }, { key: "pressure", label: "Pressure (bar)" }],
-    calc: (f) => {
+    si:       [{ key: "flow", label: "Flow (LPM)" }, { key: "pressure", label: "Pressure (bar)" }],
+    imperial: [{ key: "flow", label: "Flow (GPM)" }, { key: "pressure", label: "Pressure (PSI)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const hp = (parseFloat(f.flow) * parseFloat(f.pressure)) / 1714;
+        return `Power: ${hp.toFixed(2)} HP  |  ${(hp * 0.7457).toFixed(2)} kW`;
+      }
       const kw = (parseFloat(f.flow) * parseFloat(f.pressure)) / 600;
-      return `Power: ${kw.toFixed(2)} kW (${(kw * 1.341).toFixed(2)} HP)`;
+      return `Power: ${kw.toFixed(2)} kW  |  ${(kw * 1.341).toFixed(2)} HP`;
     }
   },
   velocity: {
     label: "Pipe Velocity", icon: "🌊",
-    fields: [{ key: "flow", label: "Flow (LPM)" }, { key: "dia", label: "Pipe ID (mm)" }],
-    calc: (f) => {
+    si:       [{ key: "flow", label: "Flow (LPM)" }, { key: "dia", label: "Pipe ID (mm)" }],
+    imperial: [{ key: "flow", label: "Flow (GPM)" }, { key: "dia", label: "Pipe ID (inch)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const area = Math.PI * Math.pow(parseFloat(f.dia) / 2, 2); // in²
+        const vel = (parseFloat(f.flow) * 0.4085) / area; // ft/s
+        return `Velocity: ${vel.toFixed(2)} ft/s  |  ${(vel * 0.3048).toFixed(2)} m/s ${vel > 13 ? "⚠️ HIGH" : "✅ OK"}`;
+      }
       const area = Math.PI * Math.pow(parseFloat(f.dia) / 2000, 2);
       const vel = (parseFloat(f.flow) / 60000) / area;
-      return `Velocity: ${vel.toFixed(2)} m/s ${vel > 4 ? "⚠️ HIGH" : "✅ OK"}`;
+      return `Velocity: ${vel.toFixed(2)} m/s  |  ${(vel * 3.281).toFixed(2)} ft/s ${vel > 4 ? "⚠️ HIGH" : "✅ OK"}`;
     }
   },
   tank: {
     label: "Tank Volume", icon: "🛢️",
-    fields: [{ key: "flow", label: "Pump Flow (LPM)" }, { key: "factor", label: "Factor (3-5)" }],
-    calc: (f) => {
+    si:       [{ key: "flow", label: "Pump Flow (LPM)" }, { key: "factor", label: "Factor (3-5)" }],
+    imperial: [{ key: "flow", label: "Pump Flow (GPM)" }, { key: "factor", label: "Factor (3-5)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const vol = parseFloat(f.flow) * parseFloat(f.factor); // gallons
+        return `Tank Volume: ${vol.toFixed(0)} US gal  |  ${(vol * 3.785).toFixed(0)} L`;
+      }
       const vol = parseFloat(f.flow) * parseFloat(f.factor);
-      return `Tank Volume: ${vol.toFixed(0)} L`;
+      return `Tank Volume: ${vol.toFixed(0)} L  |  ${(vol * 0.2642).toFixed(0)} US gal`;
     }
   },
   heat: {
     label: "Heat Load", icon: "🌡️",
-    fields: [{ key: "power", label: "Input Power (kW)" }, { key: "eff", label: "Efficiency (%)" }],
-    calc: (f) => {
+    si:       [{ key: "power", label: "Input Power (kW)" }, { key: "eff", label: "Efficiency (%)" }],
+    imperial: [{ key: "power", label: "Input Power (HP)" }, { key: "eff", label: "Efficiency (%)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const hp = parseFloat(f.power);
+        const heat = hp * (1 - parseFloat(f.eff) / 100) * 2545; // BTU/hr
+        return `Heat Load: ${heat.toFixed(0)} BTU/hr  |  Cooler: ${(heat * 1.25 / 3412).toFixed(2)} kW`;
+      }
       const heat = parseFloat(f.power) * (1 - parseFloat(f.eff) / 100);
-      return `Heat Load: ${heat.toFixed(2)} kW → Cooler: ${(heat * 1.25).toFixed(2)} kW`;
+      return `Heat Load: ${heat.toFixed(2)} kW  |  Cooler: ${(heat * 1.25).toFixed(2)} kW`;
+    }
+  },
+  torque: {
+    label: "Motor Torque", icon: "🔩",
+    si:       [{ key: "pressure", label: "Pressure (bar)" }, { key: "disp", label: "Displacement (cc/rev)" }],
+    imperial: [{ key: "pressure", label: "Pressure (PSI)" }, { key: "disp", label: "Displacement (in³/rev)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const t = (parseFloat(f.pressure) * parseFloat(f.disp)) / (2 * Math.PI); // in·lbf
+        return `Torque: ${t.toFixed(1)} in·lbf  |  ${(t * 0.1130).toFixed(2)} Nm`;
+      }
+      const t = (parseFloat(f.pressure) * parseFloat(f.disp) * 100) / (2 * Math.PI * 1000);
+      return `Torque: ${t.toFixed(2)} Nm  |  ${(t * 8.851).toFixed(1)} in·lbf`;
+    }
+  },
+  pressure_drop: {
+    label: "Pressure Drop", icon: "📉",
+    si:       [{ key: "flow", label: "Flow (LPM)" }, { key: "dia", label: "Pipe ID (mm)" }, { key: "length", label: "Pipe Length (m)" }],
+    imperial: [{ key: "flow", label: "Flow (GPM)" }, { key: "dia", label: "Pipe ID (inch)" }, { key: "length", label: "Pipe Length (ft)" }],
+    calc: (f, imp) => {
+      if (imp) {
+        const v = (parseFloat(f.flow) * 0.4085) / (Math.PI * Math.pow(parseFloat(f.dia)/2, 2));
+        const dp = (0.0216 * parseFloat(f.length) * v * v) / parseFloat(f.dia) * 0.0689;
+        return `ΔP: ${dp.toFixed(2)} PSI  |  ${(dp * 0.0689).toFixed(3)} bar`;
+      }
+      const v = (parseFloat(f.flow) / 60000) / (Math.PI * Math.pow(parseFloat(f.dia)/2000, 2));
+      const dp = (0.2165 * parseFloat(f.length) * v * v) / (parseFloat(f.dia) / 1000) / 100000;
+      return `ΔP: ${(dp*100000/100).toFixed(3)} bar  |  ${(dp*100000/100*14.5).toFixed(2)} PSI`;
+    }
+  },
+  accumulator: {
+    label: "Accumulator", icon: "🔋",
+    si:       [{ key: "p1", label: "Pre-charge P1 (bar)" }, { key: "p2", label: "Min Work P2 (bar)" }, { key: "p3", label: "Max Work P3 (bar)" }, { key: "vol", label: "Useful Volume (L)" }],
+    imperial: [{ key: "p1", label: "Pre-charge P1 (PSI)" }, { key: "p2", label: "Min Work P2 (PSI)" }, { key: "p3", label: "Max Work P3 (PSI)" }, { key: "vol", label: "Useful Volume (gal)" }],
+    calc: (f, imp) => {
+      const p1 = parseFloat(f.p1), p2 = parseFloat(f.p2), p3 = parseFloat(f.p3), vol = parseFloat(f.vol);
+      const ratio = (p3 * (p2 - p1)) / (p2 * (p3 - p1));
+      if (imp) {
+        const size = vol / (1 - ratio) * 0.2642;
+        return `Accumulator: ${size.toFixed(2)} gal  |  ${(size * 3.785).toFixed(1)} L`;
+      }
+      const size = vol / (1 - ratio);
+      return `Accumulator: ${size.toFixed(1)} L  |  ${(size * 0.2642).toFixed(2)} gal`;
     }
   }
 };
@@ -1470,6 +1546,10 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
   const [uploadFile, setUploadFile]   = useState(null);
   const [uploading, setUploading]     = useState(false);
   const [uploadMsg, setUploadMsg]     = useState("");
+  const [unitSystem, setUnitSystem]   = useState("si"); // "si" | "imperial"
+  const [editProfile, setEditProfile] = useState(false);
+  const [editName, setEditName]       = useState(user?.name || "");
+  const [editEmail, setEditEmail]     = useState(user?.email || "");
   const messagesEndRef                = useRef(null);
   const inputRef                      = useRef(null);
 
@@ -1573,7 +1653,8 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
 
   const runCalc = () => {
     try {
-      const result = CALCS[activeCalc].calc(calcInputs);
+      const isImperial = unitSystem === "imperial";
+      const result = CALCS[activeCalc].calc(calcInputs, isImperial);
       setCalcResult(result);
     } catch {
       setCalcResult("⚠️ Check inputs — all fields required");
@@ -1599,19 +1680,19 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
       background: "#020b18", display: "flex", flexDirection: "column", fontFamily: "'Rajdhani',sans-serif"
     },
     topbar: {
-      height: "56px", background: "rgba(4,20,40,0.98)", borderBottom: "1px solid rgba(200,146,26,0.3)",
+      height: "64px", background: "rgba(4,20,40,0.98)", borderBottom: "1px solid rgba(200,146,26,0.3)",
       display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.5rem",
       flexShrink: 0
     },
     body: { display: "flex", flex: 1, overflow: "hidden" },
     sidebar: {
-      width: sidebarOpen ? "260px" : "0", minWidth: sidebarOpen ? "260px" : "0",
+      width: sidebarOpen ? "280px" : "0", minWidth: sidebarOpen ? "280px" : "0",
       background: "rgba(4,20,40,0.95)", borderRight: "1px solid rgba(200,146,26,0.15)",
       display: "flex", flexDirection: "column", overflow: "hidden", transition: "all 0.3s ease"
     },
     main: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
     calcPanel: {
-      width: showCalc ? "280px" : "0", minWidth: showCalc ? "280px" : "0",
+      width: showCalc ? "320px" : "0", minWidth: showCalc ? "320px" : "0",
       background: "rgba(4,20,40,0.95)", borderLeft: "1px solid rgba(26,159,212,0.2)",
       overflow: "hidden", transition: "all 0.3s ease", display: "flex", flexDirection: "column"
     },
@@ -1628,7 +1709,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
       <div style={iStyle.topbar}>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", color: "#6b8fa8", cursor: "pointer", fontSize: "1.2rem", padding: "4px" }}>☰</button>
-          <span style={{ fontFamily: "'Orbitron',monospace", fontSize: "1rem", fontWeight: 700 }}>
+          <span style={{ fontFamily: "'Orbitron',monospace", fontSize: "1.2rem", fontWeight: 700 }}>
             Hydro<span style={{ color: "#f0b429" }}>Mind</span> AI
           </span>
           {/* Mode Selector */}
@@ -1638,10 +1719,12 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
             ].map(([m, label]) => (
               <button key={m} onClick={() => setMode(m)} style={{
                 padding: "6px 14px", border: "none", cursor: "pointer",
-                fontFamily: "'Orbitron',monospace", fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.05em",
+                fontFamily: "'Orbitron',monospace", fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.05em",
                 background: mode === m ? "rgba(26,159,212,0.25)" : "transparent",
                 color: mode === m ? "#1a9fd4" : "#6b8fa8",
-                borderRight: "1px solid rgba(200,146,26,0.2)", transition: "all 0.2s"
+                borderRight: "1px solid rgba(200,146,26,0.2)", transition: "all 0.2s",
+                      borderBottom: mode === m ? "3px solid #1a9fd4" : "3px solid transparent",
+                      paddingBottom: "4px"
               }}>{label}</button>
             ))}
           </div>
@@ -1659,7 +1742,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
             background: showCalc ? "rgba(26,159,212,0.2)" : "transparent",
             border: "1px solid rgba(26,159,212,0.3)", borderRadius: "4px",
             color: "#1a9fd4", cursor: "pointer", padding: "6px 12px",
-            fontFamily: "'Orbitron',monospace", fontSize: "0.62rem", fontWeight: 600
+            fontFamily: "'Orbitron',monospace", fontSize: "0.72rem", fontWeight: 600
           }}>🔢 CALC</button>
           <div style={{ fontSize: "0.85rem", color: "#6b8fa8" }}>
             {user?.name || user?.email || "Engineer"}
@@ -1669,7 +1752,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
           <button onClick={onLogout} style={{
             background: "transparent", border: "1px solid rgba(232,64,64,0.3)", borderRadius: "4px",
             color: "#e84040", cursor: "pointer", padding: "6px 12px",
-            fontFamily: "'Orbitron',monospace", fontSize: "0.62rem"
+            fontFamily: "'Orbitron',monospace", fontSize: "0.72rem"
           }}>LOGOUT</button>
         </div>
       </div>
@@ -1680,6 +1763,39 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
         <div style={iStyle.sidebar}>
           {/* USER PROFILE CARD */}
           <div style={{ padding: "1rem", borderBottom: "1px solid rgba(200,146,26,0.2)", flexShrink: 0 }}>
+            {editProfile ? (
+              /* ── EDIT MODE ── */
+              <div>
+                <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.58rem", color: "#f0b429", letterSpacing: "0.1em", marginBottom: "0.7rem" }}>// EDIT PROFILE</div>
+                <div style={{ marginBottom: "0.6rem" }}>
+                  <div style={{ fontSize: "0.7rem", color: "#6b8fa8", fontFamily: "'Share Tech Mono',monospace", marginBottom: "3px" }}>DISPLAY NAME</div>
+                  <input value={editName} onChange={e => setEditName(e.target.value)}
+                    placeholder="Your name"
+                    style={{ width: "100%", padding: "7px 10px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,146,26,0.3)", borderRadius: "4px", color: "#e8f4fd", fontSize: "0.88rem", outline: "none" }}
+                  />
+                </div>
+                <div style={{ marginBottom: "0.8rem" }}>
+                  <div style={{ fontSize: "0.7rem", color: "#6b8fa8", fontFamily: "'Share Tech Mono',monospace", marginBottom: "3px" }}>EMAIL</div>
+                  <input value={editEmail} onChange={e => setEditEmail(e.target.value)}
+                    placeholder="your@email.com" type="email"
+                    style={{ width: "100%", padding: "7px 10px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,146,26,0.3)", borderRadius: "4px", color: "#e8f4fd", fontSize: "0.88rem", outline: "none" }}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button onClick={() => {
+                    if(onLogout) {/* name/email saved locally only for now */}
+                    setEditProfile(false);
+                  }} style={{ flex: 1, padding: "7px", background: "linear-gradient(135deg,#c8921a,#f0b429)", border: "none", borderRadius: "4px", color: "#020b18", fontFamily: "'Orbitron',monospace", fontSize: "0.58rem", fontWeight: 700, cursor: "pointer" }}>
+                    SAVE
+                  </button>
+                  <button onClick={() => setEditProfile(false)} style={{ flex: 1, padding: "7px", background: "transparent", border: "1px solid rgba(107,143,168,0.3)", borderRadius: "4px", color: "#6b8fa8", fontFamily: "'Orbitron',monospace", fontSize: "0.58rem", cursor: "pointer" }}>
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── VIEW MODE ── */
+              <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.8rem" }}>
               {/* Avatar circle */}
               <div style={{
@@ -1689,16 +1805,21 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
                 fontFamily: "'Orbitron',monospace", fontSize: "0.75rem", fontWeight: 700, color: "white",
                 border: "2px solid rgba(200,146,26,0.4)"
               }}>
-                {(user?.name || user?.email || "U").slice(0,2).toUpperCase()}
+                {(editName || user?.name || user?.email || "U").slice(0,2).toUpperCase()}
               </div>
               <div style={{ flex: 1, overflow: "hidden" }}>
-                <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#e8f4fd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user?.name || "Engineer"}
+                <div style={{ fontSize: "0.95rem", fontWeight: 600, color: "#e8f4fd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {editName || user?.name || "Engineer"}
                 </div>
-                <div style={{ fontSize: "0.72rem", color: "#6b8fa8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user?.email || ""}
+                <div style={{ fontSize: "0.8rem", color: "#6b8fa8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {editEmail || user?.email || ""}
                 </div>
               </div>
+              {/* Edit button */}
+              <button onClick={() => { setEditName(user?.name || ""); setEditEmail(user?.email || ""); setEditProfile(true); }}
+                style={{ background: "none", border: "1px solid rgba(200,146,26,0.25)", borderRadius: "4px", color: "#c8921a", cursor: "pointer", padding: "4px 8px", fontSize: "0.7rem", flexShrink: 0 }} title="Edit Profile">
+                ✏️
+              </button>
             </div>
             {/* Status badges */}
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
@@ -1729,6 +1850,8 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
               <button style={{ width: "100%", marginTop: "0.7rem", padding: "7px", background: "linear-gradient(135deg,rgba(200,146,26,0.2),rgba(240,180,41,0.15))", border: "1px solid rgba(200,146,26,0.4)", borderRadius: "4px", color: "#f0b429", cursor: "pointer", fontFamily: "'Orbitron',monospace", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.08em" }}>
                 ⚡ UPGRADE TO PREMIUM
               </button>
+            )}
+            </div>
             )}
           </div>
 
@@ -1769,7 +1892,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
                     </span>
                     <span style={{ fontSize: "0.58rem", color: "#6b8fa8" }}>{Math.floor(item.messages.length/2)} msg</span>
                   </div>
-                  <div style={{ fontSize: "0.8rem", color: "#e8f4fd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.preview}</div>
+                  <div style={{ fontSize: "0.88rem", color: "#e8f4fd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.preview}</div>
                   {item.timestamp && (
                     <div style={{ fontSize: "0.6rem", color: "#6b8fa8", marginTop: "2px" }}>
                       {new Date(item.timestamp).toLocaleDateString("en-GB", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" })}
@@ -1830,7 +1953,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
                     background: msg.role === "user" ? "rgba(13,79,140,0.35)" : msg.source === "system" ? "rgba(200,146,26,0.08)" : "rgba(4,20,40,0.8)",
                     border: `1px solid ${msg.role === "user" ? "rgba(26,159,212,0.3)" : msg.source === "system" ? "rgba(200,146,26,0.2)" : "rgba(200,146,26,0.15)"}`,
                     borderRadius: msg.role === "user" ? "12px 2px 12px 12px" : "2px 12px 12px 12px",
-                    padding: "10px 14px", fontSize: "0.92rem", lineHeight: 1.65, color: "#e8f4fd"
+                    padding: "10px 14px", fontSize: "0.96rem", lineHeight: 1.7, color: "#e8f4fd"
                   }} dangerouslySetInnerHTML={{ __html: formatText(msg.text) }} />
                   <div style={{ fontSize: "0.7rem", color: "#6b8fa8", marginTop: "4px", textAlign: msg.role === "user" ? "right" : "left" }}>{msg.time}</div>
                 </div>
@@ -1852,7 +1975,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
 
           {/* SCHEMATIC PANEL */}
           {showSchematic && mode === "troubleshooter" && (
-            <div style={{ width: "400px", minWidth: "400px", borderLeft: "1px solid rgba(200,146,26,0.2)", background: "rgba(4,20,40,0.95)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ width: "480px", minWidth: "480px", borderLeft: "1px solid rgba(200,146,26,0.2)", background: "rgba(4,20,40,0.95)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <div style={{ padding: "0.8rem 1rem", borderBottom: "1px solid rgba(200,146,26,0.15)", flexShrink: 0 }}>
                 <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.62rem", color: "#f0b429", letterSpacing: "0.12em", marginBottom: "0.6rem" }}>// FAULT-FINDING SCHEMATICS</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
@@ -1862,11 +1985,34 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
                 </div>
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "1rem" }}>
-                <div style={{ fontSize: "0.78rem", color: "#6b8fa8", marginBottom: "0.8rem", lineHeight: 1.4 }}>{SCHEMATICS[activeSchematic].desc}</div>
+                <div style={{ fontSize: "0.88rem", color: "#6b8fa8", marginBottom: "0.8rem", lineHeight: 1.5 }}>{SCHEMATICS[activeSchematic].desc}</div>
                 <div dangerouslySetInnerHTML={{ __html: SCHEMATICS[activeSchematic].svg }} style={{ width: "100%" }} />
               </div>
             </div>
           )}
+          </div>
+
+          {/* AD BANNER ─ Google AdSense / revenue slot */}
+          <div style={{
+            padding: "6px 1.5rem",
+            background: "rgba(2,11,24,0.95)",
+            borderTop: "1px solid rgba(200,146,26,0.12)",
+            borderBottom: "1px solid rgba(200,146,26,0.12)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            minHeight: "70px", flexShrink: 0, position: "relative"
+          }}>
+            {/* Replace the div below with your <ins class="adsbygoogle"> tag */}
+            <div style={{
+              width: "728px", maxWidth: "100%", height: "60px",
+              background: "rgba(200,146,26,0.04)",
+              border: "1px dashed rgba(200,146,26,0.25)",
+              borderRadius: "4px", display: "flex", alignItems: "center",
+              justifyContent: "center", gap: "10px"
+            }}>
+              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "rgba(200,146,26,0.5)", letterSpacing: "0.12em" }}>
+                📢 ADVERTISEMENT · 728×60 LEADERBOARD · PASTE ADSENSE TAG HERE
+              </span>
+            </div>
           </div>
 
           {/* INPUT BAR */}
@@ -1875,7 +2021,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
               <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder={mode === "troubleshooter" ? "Describe the fault or ask a hydraulic question... (Enter to send)" : "Describe your system requirements — load, pressure, flow, speed..."}
-                rows={2} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,146,26,0.25)", borderRadius: "6px", padding: "10px 14px", color: "#e8f4fd", fontSize: "0.95rem", lineHeight: 1.5, resize: "none", fontFamily: "'Rajdhani',sans-serif" }}
+                rows={2} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,146,26,0.25)", borderRadius: "6px", padding: "10px 14px", color: "#e8f4fd", fontSize: "1.05rem", lineHeight: 1.6, resize: "none", fontFamily: "'Rajdhani',sans-serif" }}
               />
             </div>
             <button onClick={sendMessage} disabled={loading || !input.trim()} style={{ padding: "10px 20px", background: loading ? "rgba(200,146,26,0.3)" : "linear-gradient(135deg,#c8921a,#f0b429)", border: "none", borderRadius: "6px", color: "#020b18", cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Orbitron',monospace", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", transition: "all 0.2s", minWidth: "80px", alignSelf: "flex-end" }}>
@@ -1887,8 +2033,28 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
 
         {/* CALCULATOR PANEL */}
         <div style={iStyle.calcPanel}>
-          <div style={{ padding: "1rem", borderBottom: "1px solid rgba(26,159,212,0.2)", flexShrink: 0 }}>
-            <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.62rem", color: "#1a9fd4", letterSpacing: "0.12em" }}>// CALCULATORS</div>
+          <div style={{ padding: "0.8rem 1rem", borderBottom: "1px solid rgba(26,159,212,0.2)", flexShrink: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.62rem", color: "#1a9fd4", letterSpacing: "0.12em" }}>// CALCULATORS</div>
+              {/* SI / Imperial Toggle */}
+              <div style={{ display: "flex", background: "rgba(2,11,24,0.8)", border: "1px solid rgba(26,159,212,0.3)", borderRadius: "4px", overflow: "hidden" }}>
+                {[["si","SI / Metric"],["imperial","Imperial"]].map(([val,label]) => (
+                  <button key={val} onClick={() => { setUnitSystem(val); setCalcResult(""); setCalcInputs({}); }}
+                    style={{ padding: "4px 10px", border: "none", cursor: "pointer", fontFamily: "'Orbitron',monospace",
+                      fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.06em", transition: "all 0.2s",
+                      background: unitSystem === val ? "rgba(26,159,212,0.3)" : "transparent",
+                      color: unitSystem === val ? "#1a9fd4" : "#6b8fa8",
+                      borderRight: val === "si" ? "1px solid rgba(26,159,212,0.2)" : "none"
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Unit system indicator */}
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: unitSystem === "imperial" ? "#f0b429" : "#1a9fd4", letterSpacing: "0.08em" }}>
+              {unitSystem === "imperial" ? "📐 IMPERIAL  PSI · GPM · lbf · BTU/hr · ft/s" : "📐 SI METRIC  bar · LPM · kN · kW · m/s"}
+            </div>
           </div>
           <div style={{ padding: "0.8rem", display: "flex", flexWrap: "wrap", gap: "0.4rem", borderBottom: "1px solid rgba(26,159,212,0.15)", flexShrink: 0 }}>
             {Object.entries(CALCS).map(([key, calc]) => (
@@ -1905,14 +2071,14 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
             <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.72rem", color: "#f0b429", marginBottom: "1rem" }}>
               {CALCS[activeCalc].icon} {CALCS[activeCalc].label}
             </div>
-            {CALCS[activeCalc].fields.map(field => (
+            {(unitSystem === 'imperial' ? CALCS[activeCalc].imperial : CALCS[activeCalc].si).map(field => (
               <div key={field.key} style={{ marginBottom: "0.8rem" }}>
-                <label style={{ fontSize: "0.78rem", color: "#6b8fa8", display: "block", marginBottom: "4px", fontFamily: "'Share Tech Mono',monospace" }}>{field.label}</label>
+                <label style={{ fontSize: "0.9rem", color: "#6b8fa8", display: "block", marginBottom: "5px", fontFamily: "'Share Tech Mono',monospace" }}>{field.label}</label>
                 <input
                   type="number"
                   value={calcInputs[field.key] || ""}
                   onChange={e => setCalcInputs(prev => ({ ...prev, [field.key]: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: "4px", fontSize: "0.9rem", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(26,159,212,0.2)", color: "#e8f4fd" }}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "4px", fontSize: "1rem", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(26,159,212,0.2)", color: "#e8f4fd" }}
                 />
               </div>
             ))}
@@ -1922,7 +2088,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
               fontFamily: "'Orbitron',monospace", fontSize: "0.68rem", fontWeight: 700, marginBottom: "1rem"
             }}>CALCULATE</button>
             {calcResult && (
-              <div style={{ padding: "0.8rem", background: "rgba(26,159,212,0.1)", border: "1px solid rgba(26,159,212,0.3)", borderRadius: "4px", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.82rem", color: "#5dd4f8", lineHeight: 1.6 }}>
+              <div style={{ padding: "1rem", background: "rgba(26,159,212,0.1)", border: "1px solid rgba(26,159,212,0.3)", borderRadius: "4px", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.96rem", color: "#5dd4f8", lineHeight: 1.6 }}>
                 {calcResult}
               </div>
             )}
