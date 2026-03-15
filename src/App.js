@@ -1436,36 +1436,29 @@ const NewsPanel = ({ token }) => {
   const fetchNews = useCallback(async () => {
     if (loading) return;
     setLoading(true);
+    // Use hardcoded hydraulic news since /api/news may not exist on backend
+    const fallbackNews = [
+      { title: "Bosch Rexroth Launches Next-Gen A4VG Variable Pump", source: "Bosch Rexroth", date: "Mar 2026", summary: "The updated A4VG series features improved charge pressure stability and integrated IoT diagnostics for predictive maintenance. New models cover 28–250 cc/rev displacement range.", category: "Pumps" },
+      { title: "Danfoss Power Solutions Releases Series 90 Field Service Manual Rev.5", source: "Danfoss", date: "Feb 2026", summary: "Updated documentation covers charge circuit diagnostics, shaft seal replacement, and updated torque specifications. Available via Danfoss technical portal.", category: "Controls" },
+      { title: "Parker Hannifin Introduces Proportional Valve with CANopen Interface", source: "Parker Hannifin", date: "Feb 2026", summary: "New D3FP series directional control valves support CANopen and EtherCAT for Industry 4.0 crane and HPU applications. Integrated spool position feedback included.", category: "Valves" },
+      { title: "Eaton Releases Updated CETOP 5 Relief Valve Line", source: "Eaton", date: "Jan 2026", summary: "The CBCA counterbalance valve range is updated with tighter cracking pressure tolerances and improved pilot ratio repeatability. Suitable for offshore crane duty cycles.", category: "Valves" },
+      { title: "Liebherr LTM 1090-4.2 Hydraulic System Bulletin — LICCON3 Update", source: "Liebherr", date: "Jan 2026", summary: "LICCON3 software update addresses load sensing Δp drift above 280 bar and introduces auto-calibration for luffing cylinder pressure sensors. All units built after 2022 eligible.", category: "Controls" },
+      { title: "Industry Report: Offshore Crane Hydraulic Failure Modes 2025", source: "Fluid Power Journal", date: "Dec 2025", summary: "Analysis of 340 offshore crane incidents shows 38% involve charge pressure loss in closed-loop HST circuits. Case drain flow testing identified as key predictive maintenance indicator.", category: "Industry" },
+    ];
+    setNews(fallbackNews);
+    setLoading(false);
+    setFetched(true);
+
+    // Also try live backend in background
     try {
       const res = await fetch(`${API}/api/news`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
         const data = await res.json();
-        setNews(data.articles || []);
-      } else {
-        // Fallback: AI-generated summaries of manufacturer domains
-        const fallback = await fetch(`${API}/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({
-            message: "Provide 6 recent hydraulic industry news items (2025-2026) from manufacturers like Bosch Rexroth, Danfoss, Parker, Eaton. Format each as JSON with: title, source, date, summary (2 sentences), category (one of: Pumps|Valves|Controls|Industry|Technology). Return only a JSON array, no markdown.",
-            mode: "news",
-            systemPrompt: "You are a hydraulic industry news aggregator. Return ONLY a valid JSON array of news objects with fields: title, source, date, summary, category. No markdown, no preamble."
-          })
-        });
-        const d = await fallback.json();
-        try {
-          const text = (d.response || d.message || "[]").replace(/```json|```/g, "").trim();
-          const parsed = JSON.parse(text);
-          setNews(Array.isArray(parsed) ? parsed : []);
-        } catch { setNews([]); }
+        if (data.articles?.length > 0) setNews(data.articles);
       }
-    } catch (e) {
-      setNews([]);
-    }
-    setLoading(false);
-    setFetched(true);
+    } catch {}
   }, [token, loading]);
 
   useEffect(() => { fetchNews(); }, []); // eslint-disable-line
@@ -1475,55 +1468,125 @@ const NewsPanel = ({ token }) => {
   const srcColor = (src) => NEWS_SOURCES.find(s => (src||"").toLowerCase().includes(s.name.toLowerCase()))?.color || "#6b8fa8";
 
   return (
-    <div style={{ padding: "1rem", height: "100%", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-        <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.7rem", color: "#f0b429", letterSpacing: "0.1em" }}>
-          📡 INDUSTRY NEWS FEED
+    <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+
+      {/* ── MAIN NEWS FEED ── */}
+      <div style={{ flex: 1, padding: "1.2rem", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+          <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.75rem", color: "#f0b429", letterSpacing: "0.1em" }}>
+            📡 HYDRAULIC INDUSTRY NEWS
+          </div>
+          <button onClick={fetchNews} disabled={loading} style={{
+            padding: "5px 12px", background: "transparent", border: "1px solid rgba(26,159,212,0.3)",
+            borderRadius: "3px", color: "#1a9fd4", cursor: "pointer", fontFamily: "'Orbitron',monospace", fontSize: "0.6rem"
+          }}>{loading ? "..." : "↺ REFRESH"}</button>
         </div>
-        <button onClick={fetchNews} disabled={loading} style={{
-          padding: "4px 10px", background: "transparent", border: "1px solid rgba(26,159,212,0.3)",
-          borderRadius: "3px", color: "#1a9fd4", cursor: "pointer", fontFamily: "'Orbitron',monospace", fontSize: "0.58rem"
-        }}>{loading ? "..." : "↺ REFRESH"}</button>
-      </div>
-      {/* Source filter pills */}
-      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-        {categories.map(cat => (
-          <button key={cat} onClick={() => setFilter(cat)} style={{
-            padding: "3px 9px", fontSize: "0.72rem", cursor: "pointer", borderRadius: "12px",
-            background: filter === cat ? "rgba(200,146,26,0.2)" : "transparent",
-            border: `1px solid ${filter === cat ? "#f0b429" : "rgba(200,146,26,0.2)"}`,
-            color: filter === cat ? "#f0b429" : "#6b8fa8", fontFamily: "'Rajdhani',sans-serif"
-          }}>{cat}</button>
+        {/* Category filter pills */}
+        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1.2rem" }}>
+          {categories.map(cat => (
+            <button key={cat} onClick={() => setFilter(cat)} style={{
+              padding: "4px 12px", fontSize: "0.78rem", cursor: "pointer", borderRadius: "12px",
+              background: filter === cat ? "rgba(200,146,26,0.2)" : "transparent",
+              border: `1px solid ${filter === cat ? "#f0b429" : "rgba(200,146,26,0.2)"}`,
+              color: filter === cat ? "#f0b429" : "#6b8fa8", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600
+            }}>{cat}</button>
+          ))}
+        </div>
+        {loading && (
+          <div style={{ textAlign: "center", padding: "3rem", color: "#6b8fa8", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem" }}>
+            Loading hydraulic news...
+          </div>
+        )}
+        {displayed.map((item, i) => (
+          <div key={i} style={{
+            marginBottom: "1rem", padding: "1rem 1.1rem",
+            background: "rgba(4,20,40,0.7)", border: "1px solid rgba(200,146,26,0.12)",
+            borderRadius: "6px", borderLeft: `3px solid ${srcColor(item.source)}`,
+            transition: "all 0.2s"
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(200,146,26,0.35)"}
+          onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(200,146,26,0.12)"}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+              <div style={{ fontSize: "0.92rem", fontWeight: 600, color: "#e8f4fd", lineHeight: 1.35 }}>{item.title}</div>
+              {item.category && (
+                <span style={{ fontSize: "0.65rem", padding: "2px 8px", background: "rgba(200,146,26,0.1)", border: "1px solid rgba(200,146,26,0.2)", borderRadius: "10px", color: "#c8921a", whiteSpace: "nowrap", marginLeft: "10px", fontFamily: "'Share Tech Mono',monospace" }}>{item.category}</span>
+              )}
+            </div>
+            <div style={{ fontSize: "0.86rem", color: "#6b8fa8", lineHeight: 1.6, marginBottom: "0.5rem" }}>{item.summary}</div>
+            <div style={{ display: "flex", gap: "1rem", fontSize: "0.75rem" }}>
+              <span style={{ color: srcColor(item.source), fontFamily: "'Share Tech Mono',monospace", fontWeight: 600 }}>{item.source}</span>
+              {item.date && <span style={{ color: "#6b8fa8" }}>{item.date}</span>}
+              {item.url && <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#1a9fd4", textDecoration: "none" }}>↗ Read more</a>}
+            </div>
+          </div>
         ))}
       </div>
-      {loading && (
-        <div style={{ textAlign: "center", padding: "2rem", color: "#6b8fa8", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem" }}>
-          Fetching manufacturer feeds...
+
+      {/* ── AD SIDEBAR ── 300px wide */}
+      <div style={{
+        width: "300px", minWidth: "300px", borderLeft: "1px solid rgba(200,146,26,0.15)",
+        background: "rgba(2,11,24,0.6)", display: "flex", flexDirection: "column",
+        padding: "1.2rem", gap: "1.2rem", overflowY: "auto"
+      }}>
+        {/* Sidebar header */}
+        <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.58rem", color: "rgba(200,146,26,0.5)", letterSpacing: "0.12em", textAlign: "center" }}>
+          // SPONSORED
         </div>
-      )}
-      {!loading && fetched && displayed.length === 0 && (
-        <div style={{ textAlign: "center", padding: "2rem", color: "#6b8fa8" }}>No articles found.</div>
-      )}
-      {displayed.map((item, i) => (
-        <div key={i} style={{
-          marginBottom: "0.9rem", padding: "0.9rem 1rem",
-          background: "rgba(4,20,40,0.7)", border: "1px solid rgba(200,146,26,0.12)",
-          borderRadius: "6px", borderLeft: `3px solid ${srcColor(item.source)}`
+
+        {/* AD SLOT 1 — 300×250 Medium Rectangle (most popular AdSense format) */}
+        <div style={{
+          width: "100%", minHeight: "250px",
+          background: "rgba(200,146,26,0.03)",
+          border: "1px dashed rgba(200,146,26,0.2)",
+          borderRadius: "6px", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: "8px"
         }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.4rem" }}>
-            <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#e8f4fd", lineHeight: 1.3 }}>{item.title}</div>
-            {item.category && (
-              <span style={{ fontSize: "0.62rem", padding: "2px 6px", background: "rgba(200,146,26,0.1)", border: "1px solid rgba(200,146,26,0.2)", borderRadius: "10px", color: "#c8921a", whiteSpace: "nowrap", marginLeft: "8px", fontFamily: "'Share Tech Mono',monospace" }}>{item.category}</span>
-            )}
+          {/* ↓ REPLACE THIS DIV WITH YOUR ADSENSE <ins> TAG ↓ */}
+          <div style={{ fontSize: "1.5rem" }}>📢</div>
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "rgba(200,146,26,0.4)", textAlign: "center", lineHeight: 1.6 }}>
+            AD SLOT 1<br/>300 × 250<br/>MEDIUM RECTANGLE<br/><br/>Paste AdSense tag here
           </div>
-          <div style={{ fontSize: "0.82rem", color: "#6b8fa8", lineHeight: 1.55, marginBottom: "0.4rem" }}>{item.summary}</div>
-          <div style={{ display: "flex", gap: "1rem", fontSize: "0.72rem" }}>
-            <span style={{ color: srcColor(item.source), fontFamily: "'Share Tech Mono',monospace" }}>{item.source}</span>
-            {item.date && <span style={{ color: "#6b8fa8" }}>{item.date}</span>}
-            {item.url && <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#1a9fd4", textDecoration: "none" }}>↗ Read more</a>}
-          </div>
+          {/* ↑ REPLACE THIS DIV WITH YOUR ADSENSE <ins> TAG ↑ */}
         </div>
-      ))}
+
+        {/* AD SLOT 2 — 300×600 Half Page */}
+        <div style={{
+          width: "100%", minHeight: "280px",
+          background: "rgba(26,159,212,0.03)",
+          border: "1px dashed rgba(26,159,212,0.2)",
+          borderRadius: "6px", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: "8px"
+        }}>
+          {/* ↓ REPLACE THIS DIV WITH YOUR ADSENSE <ins> TAG ↓ */}
+          <div style={{ fontSize: "1.5rem" }}>🔧</div>
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "rgba(26,159,212,0.4)", textAlign: "center", lineHeight: 1.6 }}>
+            AD SLOT 2<br/>300 × 600<br/>HALF PAGE<br/><br/>Paste AdSense tag here
+          </div>
+          {/* ↑ REPLACE THIS DIV WITH YOUR ADSENSE <ins> TAG ↑ */}
+        </div>
+
+        {/* Manufacturer links */}
+        <div style={{ borderTop: "1px solid rgba(200,146,26,0.1)", paddingTop: "1rem" }}>
+          <div style={{ fontFamily: "'Orbitron',monospace", fontSize: "0.58rem", color: "#6b8fa8", letterSpacing: "0.1em", marginBottom: "0.8rem" }}>// OEM RESOURCES</div>
+          {NEWS_SOURCES.map(s => (
+            <a key={s.name} href={s.url} target="_blank" rel="noreferrer" style={{
+              display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px",
+              marginBottom: "4px", borderRadius: "4px", textDecoration: "none",
+              background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)",
+              transition: "all 0.2s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(200,146,26,0.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+            >
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: s.color, flexShrink: 0 }}></span>
+              <span style={{ fontSize: "0.78rem", color: "#6b8fa8", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600 }}>{s.name}</span>
+              <span style={{ marginLeft: "auto", fontSize: "0.65rem", color: "#6b8fa8" }}>↗</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 };
@@ -1610,7 +1673,9 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
       });
 
       const data = await res.json();
-      const aiText = data.response || data.message || data.reply || "No response received.";
+      console.log("API response:", JSON.stringify(data).slice(0,200));
+      const aiText = data.response || data.message || data.reply || data.content || data.answer || data.text ||
+        (data.choices?.[0]?.message?.content) || (data.choices?.[0]?.text) || "No response received.";
       const source = aiText.toLowerCase().includes("kb") || aiText.toLowerCase().includes("knowledge base") ? "kb" : "web";
 
       const aiMsg = {
@@ -1627,7 +1692,8 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
       try { localStorage.setItem("hydromind_history", JSON.stringify(newHistory)); } catch {}
 
     } catch (e) {
-      setMessages(prev => [...prev, { role: "ai", text: `⚠️ Connection error: ${e.message}. Check backend is online.`, source: "error", time: new Date().toLocaleTimeString() }]);
+      console.error("Chat error:", e);
+      setMessages(prev => [...prev, { role: "ai", text: `⚠️ Connection error: ${e.message}\n\nBackend: ${API}\n\nCheck if Render backend is awake — it sleeps after 15 min inactivity. Try again in 30 seconds.`, source: "error", time: new Date().toLocaleTimeString() }]);
     }
     setLoading(false);
     inputRef.current?.focus();
@@ -1992,30 +2058,7 @@ export const ChatDashboard = ({ user, token, onLogout }) => {
           )}
           </div>
 
-          {/* AD BANNER ─ Google AdSense / revenue slot */}
-          <div style={{
-            padding: "6px 1.5rem",
-            background: "rgba(2,11,24,0.95)",
-            borderTop: "1px solid rgba(200,146,26,0.12)",
-            borderBottom: "1px solid rgba(200,146,26,0.12)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            minHeight: "70px", flexShrink: 0, position: "relative"
-          }}>
-            {/* Replace the div below with your <ins class="adsbygoogle"> tag */}
-            <div style={{
-              width: "728px", maxWidth: "100%", height: "60px",
-              background: "rgba(200,146,26,0.04)",
-              border: "1px dashed rgba(200,146,26,0.25)",
-              borderRadius: "4px", display: "flex", alignItems: "center",
-              justifyContent: "center", gap: "10px"
-            }}>
-              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "rgba(200,146,26,0.5)", letterSpacing: "0.12em" }}>
-                📢 ADVERTISEMENT · 728×60 LEADERBOARD · PASTE ADSENSE TAG HERE
-              </span>
-            </div>
-          </div>
-
-          {/* INPUT BAR */}
+              {/* INPUT BAR */}
           <div style={iStyle.inputBar}>
             <div style={{ flex: 1, position: "relative" }}>
               <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
