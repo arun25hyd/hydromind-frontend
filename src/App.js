@@ -462,9 +462,9 @@ const ElectricalPanel = ({ sendMsg }) => {
                   {f.checks.map((c,i)=><div key={i} style={{fontSize:"0.84rem",color:"#e8f4fd",padding:"3px 0",display:"flex",gap:"8px"}}><span style={{color:"#1a9fd4",flexShrink:0}}>{i+1}.</span>{c}</div>)}
                   <div style={{fontSize:"0.78rem",color:"#c8921a",margin:"0.6rem 0 0.3rem",fontWeight:700}}>LIKELY CAUSES</div>
                   {f.causes.map((c,i)=><div key={i} style={{fontSize:"0.84rem",color:"#6b8fa8",padding:"2px 0",display:"flex",gap:"8px"}}><span style={{color:"#c8921a"}}>•</span>{c}</div>)}
-                  <button onClick={()=>sendMsg(`I have a ${cat.cat} fault: ${f.sym}. Give me detailed diagnosis steps.`)}
+                  <button onClick={()=>sendMsg("I have a "+cat.cat+" fault: "+f.sym+". Give me detailed diagnosis steps.")}
                     style={{marginTop:"0.8rem",padding:"7px 14px",background:"rgba(26,159,212,0.1)",border:"1px solid rgba(26,159,212,0.3)",borderRadius:"4px",color:"#1a9fd4",cursor:"pointer",fontFamily:"'Rajdhani',sans-serif",fontSize:"0.82rem"}}>
-                    Ask AI for deeper analysis →
+                    Ask AI for deeper analysis &rarr;
                   </button>
                 </div>
               )}
@@ -506,9 +506,9 @@ const PLCPanel = ({ sendMsg }) => {
               {f.checks.map((c,j)=><div key={j} style={{fontSize:"0.84rem",color:"#e8f4fd",padding:"3px 0",display:"flex",gap:"8px"}}><span style={{color:"#1a9fd4",flexShrink:0}}>{j+1}.</span>{c}</div>)}
               <div style={{fontSize:"0.78rem",color:"#c8921a",margin:"0.6rem 0 0.3rem",fontWeight:700}}>LIKELY CAUSES</div>
               {f.causes.map((c,j)=><div key={j} style={{fontSize:"0.84rem",color:"#6b8fa8",padding:"2px 0",display:"flex",gap:"8px"}}><span style={{color:"#c8921a"}}>•</span>{c}</div>)}
-              <button onClick={()=>sendMsg(`PLC-hydraulic fault: ${f.sym}. Give me detailed diagnosis and fix steps.`)}
+              <button onClick={()=>sendMsg("PLC-hydraulic fault: "+f.sym+". Give me detailed diagnosis and fix steps.")}
                 style={{marginTop:"0.8rem",padding:"7px 14px",background:"rgba(200,146,26,0.08)",border:"1px solid rgba(200,146,26,0.3)",borderRadius:"4px",color:"#c8921a",cursor:"pointer",fontFamily:"'Rajdhani',sans-serif",fontSize:"0.82rem"}}>
-                Ask AI for deeper analysis →
+                Ask AI for deeper analysis &rarr;
               </button>
             </div>
           )}
