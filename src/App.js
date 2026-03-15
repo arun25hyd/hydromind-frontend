@@ -71,7 +71,7 @@ const HydraulicBG = () => {
       const g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);
       g.addColorStop(0,"#020b18"); g.addColorStop(1,"#041428");
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      pipes.forEach(([pts,_1,_2,_3,pcolor])=>{
+      pipes.forEach(([pts,pcolor])=>{
         const p=pts; ctx.beginPath(); ctx.strokeStyle=pcolor||"rgba(26,159,212,0.3)";
         ctx.lineWidth=ss(2); ctx.lineCap="round";
         p.forEach(([x,y],i)=>i?ctx.lineTo(sx(x),sy(y)):ctx.moveTo(sx(x),sy(y)));
