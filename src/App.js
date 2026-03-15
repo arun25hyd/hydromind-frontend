@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const API          = process.env.REACT_APP_BACKEND_URL || "https://hydromind-backend.onrender.com";
@@ -110,7 +110,7 @@ const GridOverlay = () => (
 const Nav = ({ onFeedback, onLaunch }) => {
   const [scrolled, setScrolled] = useState(false);
   useEffect(()=>{ const fn=()=>setScrolled(window.scrollY>30); window.addEventListener("scroll",fn); return()=>window.removeEventListener("scroll",fn); },[]);
-  const go = id => document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
+  const go = id => { const _el=document.getElementById(id); if(_el) _el.scrollIntoView({behavior:"smooth"}); };
   return (
     <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,
       background:scrolled?"rgba(2,11,24,0.96)":"transparent",
@@ -147,8 +147,8 @@ const Hero = ({ onLaunch }) => (
         Expert hydraulic systems intelligence for crane &amp; heavy equipment technicians.<br/>Fault diagnosis · System design · Electrical · PLC · OEM knowledge base.
       </p>
       <div className="fadeUp-4" style={{display:"flex",gap:"1rem",justifyContent:"center",flexWrap:"wrap"}}>
-        <button onClick={onLaunch} style={{background:"linear-gradient(135deg,#c8921a,#f0b429)",border:"none",color:"#020b18",padding:"15px 34px",borderRadius:"4px",cursor:"pointer",fontFamily:"'Orbitron',monospace",fontSize:"0.78rem",fontWeight:700,letterSpacing:"0.1em",boxShadow:"0 0 40px rgba(200,146,26,0.4)"}}>LAUNCH APP →</button>
-        <button onClick={()=>document.getElementById("how-it-works")?.scrollIntoView({behavior:"smooth"})} style={{background:"none",border:"1px solid rgba(26,159,212,0.4)",color:"#1a9fd4",padding:"15px 34px",borderRadius:"4px",cursor:"pointer",fontFamily:"'Rajdhani',sans-serif",fontSize:"0.95rem"}}>How It Works</button>
+        <button onClick={onLaunch} style={{background:"linear-gradient(135deg,#c8921a,#f0b429)",border:"none",color:"#020b18",padding:"15px 34px",borderRadius:"4px",cursor:"pointer",fontFamily:"'Orbitron',monospace",fontSize:"0.78rem",fontWeight:700,letterSpacing:"0.1em",boxShadow:"0 0 40px rgba(200,146,26,0.4)"}}>LAUNCH APP &rarr;</button>
+        <button onClick={()=>(function(){var _e=document.getElementById("how-it-works");if(_e)_e.scrollIntoView({behavior:"smooth"});})()} style={{background:"none",border:"1px solid rgba(26,159,212,0.4)",color:"#1a9fd4",padding:"15px 34px",borderRadius:"4px",cursor:"pointer",fontFamily:"'Rajdhani',sans-serif",fontSize:"0.95rem"}}>How It Works</button>
       </div>
     </div>
   </section>
@@ -274,11 +274,11 @@ const FeedbackModal = ({ onClose }) => {
       if (res.ok) { setSent(true); }
       else {
         // fallback: open mailto
-        window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=HydroMind Feedback&body=${encodeURIComponent(text)}`;
+        window.location.href = "mailto:"+FEEDBACK_EMAIL+"?subject=HydroMind%20Feedback&body="+encodeURIComponent(text);
         setSent(true);
       }
-    } catch {
-      window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=HydroMind Feedback&body=${encodeURIComponent(text)}`;
+    } catch(_err) {
+      window.location.href = "mailto:"+FEEDBACK_EMAIL+"?subject=HydroMind%20Feedback&body="+encodeURIComponent(text);
       setSent(true);
     }
     setSending(false);
@@ -296,7 +296,7 @@ const FeedbackModal = ({ onClose }) => {
             <div style={{color:"#6b8fa8",fontSize:"0.88rem"}}>Your feedback helps improve HydroMind AI.</div>
           </div>
         ) : (
-          <>
+          <React.Fragment>
             <div style={{fontFamily:"'Orbitron',monospace",fontSize:"0.95rem",marginBottom:"1.5rem"}}>Send <span style={{color:"#f0b429"}}>Feedback</span></div>
             <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Your email (optional)" type="email"
               style={{width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(26,159,212,0.25)",borderRadius:"4px",padding:"10px 12px",color:"#e8f4fd",fontSize:"0.9rem",marginBottom:"0.8rem",outline:"none"}}/>
@@ -306,7 +306,7 @@ const FeedbackModal = ({ onClose }) => {
             <button onClick={submit} disabled={sending||!text.trim()} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#c8921a,#f0b429)",border:"none",borderRadius:"4px",color:"#020b18",fontFamily:"'Orbitron',monospace",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",opacity:sending?0.7:1}}>
               {sending?"SENDING...":"SUBMIT FEEDBACK"}
             </button>
-          </>
+          </React.Fragment>
         )}
       </div>
     </div>
@@ -559,9 +559,9 @@ const NewsPanel = () => {
 
 // ── CHAT DASHBOARD ─────────────────────────────────────────────────────────
 const ChatDashboard = ({ user, onLogout }) => {
-  const isAdmin = ADMIN_EMAILS.includes(user?.email);
+  const isAdmin = ADMIN_EMAILS.includes((user&&user.email)||"");
   const [mode,     setMode]     = useState("troubleshoot");
-  const [sessions, setSessions] = useState(()=>{ try{return JSON.parse(localStorage.getItem("hm_sessions")||"[]");}catch{return [];} });
+  const [sessions, setSessions] = useState(()=>{ try{return JSON.parse(localStorage.getItem("hm_sessions")||"[]");}catch(_e){return [];} });
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input,    setInput]    = useState("");
@@ -570,11 +570,11 @@ const ChatDashboard = ({ user, onLogout }) => {
   const bottomRef = useRef(null);
 
   useEffect(()=>{ localStorage.setItem("hm_sessions",JSON.stringify(sessions)); },[sessions]);
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
-  useEffect(()=>{ if(!activeId){setMessages([]);return;} const s=sessions.find(s=>s.id===activeId); setMessages(s?.messages||[]); },[activeId]);
+  useEffect(()=>{ if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:"smooth"}); },[messages]);
+  useEffect(()=>{ if(!activeId){setMessages([]);return;} const s=sessions.find(s=>s.id===activeId); setMessages((s&&s.messages)||[]); },[activeId]);
 
   const newSession = () => { const id=Date.now().toString(); const s={id,title:"New Chat",mode,messages:[],createdAt:new Date().toISOString()}; setSessions(p=>[s,...p]); setActiveId(id); setMessages([]); };
-  const updateSession = (id,msgs) => setSessions(p=>p.map(s=>{ if(s.id!==id)return s; return{...s,messages:msgs,title:msgs.find(m=>m.role==="user")?.content?.slice(0,38)||"New Chat"}; }));
+  const updateSession = (id,msgs) => setSessions(p=>p.map(s=>{ if(s.id!==id)return s; return{...s,messages:msgs,title:(function(){var _m=msgs.find(function(m){return m.role==="user";});return _m&&_m.content?_m.content.slice(0,38):"New Chat";})()}; }));
   const deleteSession = id => { setSessions(p=>p.filter(s=>s.id!==id)); if(activeId===id){setActiveId(null);setMessages([]);} };
 
   const sendMsg = async (overrideText) => {
@@ -597,7 +597,7 @@ const ChatDashboard = ({ user, onLogout }) => {
       });
       const data=await res.json();
       let reply="",source="kb";
-      if(data.content&&Array.isArray(data.content)) reply=data.content.find(b=>b.type==="text")?.text||"No response received.";
+      if(data.content&&Array.isArray(data.content)) reply=(function(){var _b=data.content.find(function(b){return b.type==="text";});return _b&&_b.text?_b.text:"No response received.";})();
       else if(data.reply) reply=data.reply;
       else if(data.error) reply=`Error: ${typeof data.error==="string"?data.error:JSON.stringify(data.error)}`;
       else reply="No response received.";
@@ -643,10 +643,10 @@ const ChatDashboard = ({ user, onLogout }) => {
           <div style={{fontFamily:"'Orbitron',monospace",fontSize:"0.88rem",marginBottom:"0.7rem"}}>Hydro<span style={{color:"#f0b429"}}>Mind</span></div>
           <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.7rem"}}>
             <div style={{width:"26px",height:"26px",borderRadius:"50%",background:"linear-gradient(135deg,#0d4f8c,#1a9fd4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.68rem",fontWeight:700,flexShrink:0}}>
-              {(user?.name||user?.email||"U")[0].toUpperCase()}
+              {((user&&(user.name||user.email))||"U")[0].toUpperCase()}
             </div>
             <div style={{overflow:"hidden"}}>
-              <div style={{fontSize:"0.8rem",color:"#e8f4fd",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{user?.name||user?.email}</div>
+              <div style={{fontSize:"0.8rem",color:"#e8f4fd",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(user&&(user.name||user.email))||""}</div>
               {isAdmin&&<div style={{fontSize:"0.62rem",color:"#f0b429"}}>ADMIN</div>}
             </div>
           </div>
@@ -710,7 +710,7 @@ const ChatDashboard = ({ user, onLogout }) => {
               <div key={i} className="chat-in" style={{display:"flex",gap:"0.6rem",flexDirection:m.role==="user"?"row-reverse":"row",alignItems:"flex-start"}}>
                 <div style={{width:"30px",height:"30px",borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.65rem",fontWeight:700,fontFamily:"'Orbitron',monospace",
                   background:m.role==="user"?"linear-gradient(135deg,#0d4f8c,#1a9fd4)":"linear-gradient(135deg,#c8921a,#f0b429)",color:m.role==="user"?"white":"#020b18"}}>
-                  {m.role==="user"?(user?.name||"U")[0].toUpperCase():"HM"}
+                  {m.role==="user"?((user&&user.name)||""||"U")[0].toUpperCase():"HM"}
                 </div>
                 <div style={{maxWidth:"80%",display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start"}}>
                   {m.role==="assistant"&&m.source&&m.source!=="error"&&(
@@ -833,7 +833,7 @@ const AuthModal = ({ onClose, onLogin }) => {
           {loading?"PROCESSING...":view==="login"?"SIGN IN":view==="register"?"CREATE ACCOUNT":"SEND RESET LINK"}
         </button>
         <div style={{marginTop:"1.1rem",textAlign:"center",fontSize:"0.88rem",color:"#6b8fa8"}}>
-          {view==="login"&&<><button style={LS} onClick={()=>{setView("forgot");reset();}}>Forgot password?</button><span style={{margin:"0 0.4rem"}}>·</span><button style={LS} onClick={()=>{setView("register");reset();}}>Create account</button></>}
+          {view==="login"&&<React.Fragment><button style={LS} onClick={()=>{setView("forgot");reset();}}>Forgot password?</button><span style={{margin:"0 0.4rem"}}>·</span><button style={LS} onClick={()=>{setView("register");reset();}}>Create account</button></React.Fragment>}
           {view==="register"&&<button style={LS} onClick={()=>{setView("login");reset();}}>Already have an account? Sign in</button>}
           {view==="forgot"&&<button style={LS} onClick={()=>{setView("login");reset();}}>← Back to sign in</button>}
         </div>
@@ -846,28 +846,28 @@ const AuthModal = ({ onClose, onLogin }) => {
 export default function App() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showAuth,     setShowAuth]     = useState(false);
-  const [user,         setUser]         = useState(()=>{ try{return JSON.parse(localStorage.getItem("hm_user")||"null");}catch{return null;} });
+  const [user,         setUser]         = useState(()=>{ try{return JSON.parse(localStorage.getItem("hm_user")||"null");}catch(_e){return null;} });
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
     if(params.get("reset")) setShowAuth(true);
     const token=localStorage.getItem("hm_token");
     const saved=localStorage.getItem("hm_user");
-    if(token&&saved&&!user){try{setUser(JSON.parse(saved));}catch{}}
+    if(token&&saved&&!user){try{setUser(JSON.parse(saved));}catch(_e){}}
   },[]);
 
   const handleLogin  = u => { setUser(u); setShowAuth(false); };
   const handleLogout = () => { localStorage.removeItem("hm_token"); localStorage.removeItem("hm_user"); setUser(null); };
 
   if (user) return (
-    <>
+    <React.Fragment>
       <GlobalStyle/>
       <ChatDashboard user={user} onLogout={handleLogout}/>
-    </>
+    </React.Fragment>
   );
 
   return (
-    <>
+    <React.Fragment>
       <GlobalStyle/>
       <HydraulicBG/>
       <GridOverlay/>
@@ -879,6 +879,6 @@ export default function App() {
       <Footer onFeedback={()=>setShowFeedback(true)}/>
       {showFeedback && <FeedbackModal onClose={()=>setShowFeedback(false)}/>}
       {showAuth     && <AuthModal     onClose={()=>setShowAuth(false)} onLogin={handleLogin}/>}
-    </>
+    </React.Fragment>
   );
 }
